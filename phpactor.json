@@ -1,0 +1,18 @@
+{
+    "phpactor.import_glob": 50,
+    "code_transform.import_glob": 50,
+    "completion.pull_namespace_imports": true,
+    "indexer.enabled": true,
+    "indexer.exclude_patterns": ["/vendor/", "/node_modules/"],
+    "indexer.indexer_class": "PHPactor\\Indexer\\IndexAgent",
+    "indexer.adapter": "sqlite",
+    "navigator.destinations": {
+        "source": {
+            "type": "source"
+        },
+        "test": {
+            "type": "test"
+        }
+    },
+    "laravel.enabled": true
+}
