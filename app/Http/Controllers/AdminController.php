@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Category;
@@ -9,49 +8,33 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
-    // Admin dashboard
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('admin.dashboard');
-    }
+        // Products query with search/filter
+        $products = Product::query()
+            ->when($request->filled('product_search'), function ($query) use ($request) {
+                $search = $request->input('product_search');
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            })
+            ->with('category')
+            ->latest()
+            ->paginate(10, ['*'], 'products_page')
+            ->withQueryString();
 
-    // List all categories
-    public function categories(): View
-    {
-        $categories = Category::withCount('products')
-            ->orderBy('created_at', 'desc')
-            ->get();
-        return view('admin.categories.index', compact('categories'));
-    }
+        // Categories query with search/filter
+        $categories = Category::query()
+            ->when($request->filled('category_search'), function ($query) use ($request) {
+                $search = $request->input('category_search');
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            })
+            ->withCount('products')
+            ->with('parent')
+            ->latest()
+            ->paginate(10, ['*'], 'categories_page')
+            ->withQueryString();
 
-    // Show products in a specific category
-    public function category($id): View
-    {
-        $category = Category::with(['products' => function($query) {
-            $query->with('currentPrice')->orderBy('created_at', 'desc');
-        }])->findOrFail($id);
-
-        return view('admin.categories.show', [
-            'category' => $category,
-            'products' => $category->products
-        ]);
-    }
-
-    // Edit product view
-    public function product($id): View
-    {
-        $product = Product::with(['category', 'prices' => function($query) {
-            $query->orderBy('date_applied', 'desc');
-        }])->findOrFail($id);
-
-        $categories = Category::whereNull('parent_id')
-            ->with('children')
-            ->get();
-
-        return view('admin.products.edit', [
-            'product' => $product,
-            'categories' => $categories,
-            'currentPrice' => $product->currentPrice
-        ]);
+        return view('admin.dashboard', compact('products', 'categories'));
     }
 }

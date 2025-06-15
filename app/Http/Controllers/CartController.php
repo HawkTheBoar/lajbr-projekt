@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 
 class CartController extends Controller
 {
+
     protected $cartService;
 
     public function __construct(CartService $cartService)
@@ -20,23 +21,35 @@ class CartController extends Controller
     public function index(): View
     {
         $cart = $this->cartService->getCart();
-        return view('cart.index', compact('cart'));
+        $total = $this->cartService->getTotal();
+
+        return view('cart.index', compact('cart', 'total'));
     }
-    public function addproduct(Request $request): RedirectResponse // Modify parameter and return type
+
+    public function addProduct(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'productId' => 'required',
-            'quantity' => 'required',
+            'productId' => 'required|exists:products,id',
+            'quantity' => 'nullable|integer|min:1',
         ]);
-        // Retrieve GET parameters
-        $productId = $validated['productId'];
-        $quantity = $validated['quantity']; // Default to 1 if not provided
 
-        // Add product to cart
-        $this->cartService->addItem($productId, $quantity);
+        $this->cartService->addItem(
+            $validated['productId'],
+            $validated['quantity'] ?? 1
+        );
 
-        // Redirect back to cart page with success message
         return redirect()->back()->with('success', 'Product added to cart!');
     }
 
+    public function removeProduct(int $productId): RedirectResponse
+    {
+        $this->cartService->removeItem($productId);
+        return redirect()->route('cart.index')->with('success', 'Product removed from cart!');
+    }
+
+    public function emptyCart(): RedirectResponse
+    {
+        $this->cartService->emptyCart();
+        return redirect()->route('cart.index')->with('success', 'Your cart has been emptied!');
+    }
 }

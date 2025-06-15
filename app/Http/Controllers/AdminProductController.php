@@ -1,64 +1,87 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Models\Product;
+use App\Models\Category;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AdminProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function show(Product $product): View
     {
-        //
+        return view('admin.products.show', compact('product'));
+    }
+    public function create(): View
+    {
+        return view('admin.products.create', [
+            'categories' => Category::all()
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request): RedirectResponse
     {
-        //
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'description' => 'nullable',
+            'category_id' => 'nullable|exists:categories,id',
+            'price' => 'required|numeric|min:0'
+        ]);
+
+        // Handle file upload
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $validated['image_uri'] = $path;
+        }
+
+        Product::create($validated);
+        return redirect()->route('admin.products.create')->with('success', 'Product created successfully!');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function edit(Product $product): View
     {
-        //
+        return view('admin.products.edit', [
+            'product' => $product,
+            'categories' => Category::all()
+        ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function update(Request $request, Product $product): RedirectResponse
     {
-        //
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'description' => 'nullable',
+            'category_id' => 'nullable|exists:categories,id',
+            'price' => 'required|numeric|min:0'
+        ]);
+
+        // Handle file upload
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($product->image_uri) {
+                Storage::disk('public')->delete($product->image_uri);
+            }
+
+            $path = $request->file('image')->store('products', 'public');
+            $validated['image_uri'] = $path;
+        }
+
+        $product->update($validated);
+        return redirect()->back()->with('success', 'Product updated successfully!');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function destroy(Product $product): RedirectResponse
     {
-        //
-    }
+        // Delete associated image
+        if ($product->image_uri) {
+            Storage::disk('public')->delete($product->image_uri);
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        $product->delete();
+        return redirect()->route('admin.products.create')->with('success', 'Product deleted successfully!');
     }
 }
