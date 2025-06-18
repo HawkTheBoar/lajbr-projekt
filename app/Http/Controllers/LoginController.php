@@ -13,7 +13,13 @@ class LoginController extends Controller
     {
         return view('admin.login');
     }
-
+    public function logout(Request $request): RedirectResponse
+    {
+        Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('admin.login');
+    }
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([

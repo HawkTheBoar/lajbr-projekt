@@ -17,8 +17,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\Category|null $category
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Price> $prices
- * @property-read int|null $prices_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product query()

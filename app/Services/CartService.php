@@ -1,87 +1,86 @@
 <?php
 namespace App\Services;
-
-use App\Models\Cart;
-use App\Models\CartProduct;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Str;
 
 class CartService
 {
-    // Get the current cart, handling both authenticated and guest users
-    public function getCart(): Cart
+    /**
+     * Get all stored products in cart
+     * @return array<array{productId: int, quantity: int}>
+     */
+    public function getStoredProducts(): array
     {
-        if (Auth::check()) {
-            return $this->getUserCart();
-        }
-
-        return $this->getGuestCart();
+        // Return cart items or empty array if none exists
+        return Session::get('cart', []);
     }
 
-    // Get cart for authenticated user
-    protected function getUserCart(): Cart
+    /**
+     * Add item to cart or update existing item quantity
+     * @param int $productId
+     * @param int $quantity
+     */
+    public function addItem(int $productId, int $quantity = 1): void
     {
-        // First try to get by user ID
-        $cart = Cart::where('user_id', Auth::id())
-            ->first();
+        $cart = $this->getStoredProducts();
+        $found = false;
 
-        // If not found, try to find by session ID and convert to user cart
-        if (!$cart) {
-            $sessionId = Session::get('cart_session_id');
-
-            if ($sessionId) {
-                $cart = Cart::where('session_id', $sessionId)
-                    ->first();
-
-                if ($cart) {
-                    // Convert guest cart to user cart
-                    $cart->update([
-                        'user_id' => Auth::id(),
-                        'session_id' => null
-                    ]);
-                }
+        // Update existing product quantity
+        foreach ($cart as &$item) {
+            if ($item['productId'] === $productId) {
+                $item['quantity'] += $quantity;
+                $found = true;
+                break;
             }
         }
 
-        // Create new cart if still not found
-        return $cart ?? Cart::create([
-            'user_id' => Auth::id()
-        ]);
-    }
-
-    // Get cart for guest user
-    protected function getGuestCart(): Cart
-    {
-        // Get id from session or create a new id
-        $sessionId = Session::get('cart_session_id', function () {
-            $id = Str::uuid();
-            Session::put('cart_session_id', $id);
-            return $id;
-        });
-        // get cart with id or create a new one
-        return Cart::firstOrCreate(
-            ['session_id' => $sessionId],
-            ['session_id' => $sessionId]
-        );
-    }
-
-    // Add item to cart (unchanged from previous version)
-    public function addItem($productId, $quantity = 1): void
-    {
-        $cart = $this->getCart();
-
-        $existingItem = $cart->items()->where('product_id', $productId)->first();
-
-        if ($existingItem) {
-            $existingItem->update(['quantity' => $existingItem->quantity + $quantity]);
-        } else {
-            // create a new product
-            CartProduct::create([
-                'cart_id' => $cart->id,
-                'product_id' => $productId,
+        // Add new item if product doesn't exist in cart
+        if (!$found) {
+            $cart[] = [
+                'productId' => $productId,
                 'quantity' => $quantity
-            ]);
+            ];
         }
+
+        Session::put('cart', $cart);
+    }
+
+    /**
+     * Remove item from cart or reduce quantity
+     * @param int $productId
+     * @param int $quantity
+     */
+    public function removeItem(int $productId, int $quantity = 1): void
+    {
+        $cart = $this->getStoredProducts();
+
+        foreach ($cart as $index => &$item) {
+            if ($item['productId'] === $productId) {
+                // Reduce quantity
+                $item['quantity'] -= $quantity;
+
+                // Remove item if quantity drops to zero or below
+                if ($item['quantity'] <= 0) {
+                    unset($cart[$index]);
+                }
+                break;
+            }
+        }
+
+        // Reindex array after potential removal
+        Session::put('cart', array_values($cart));
+    }
+    public function emptyCart(): void{
+        Session::forget('cart');
+    }
+    public function totalItems(): int
+    {
+        $items = $this->getStoredProducts();
+        $total = 0;
+
+        foreach ($items as $item) {
+            $total += $item['quantity'];
+        }
+
+        return $total;
     }
 }

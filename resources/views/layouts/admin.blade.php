@@ -171,7 +171,7 @@
 
             <!-- Logout -->
             <div class="absolute bottom-0 w-56 mx-4 mb-6">
-                <a href="#" class="sidebar-link bg-purple-800/40 hover:bg-purple-800 flex items-center">
+                <a href="{{ route('admin.logout') }}" class="sidebar-link bg-purple-800/40 hover:bg-purple-800 flex items-center">
                     <i class="fas fa-sign-out-alt mr-3"></i> Logout
                 </a>
             </div>

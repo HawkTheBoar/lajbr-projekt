@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TestModel;
+use App\Models\Product;
 use App\Services\CartService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -20,8 +20,34 @@ class CartController extends Controller
 
     public function index(): View
     {
-        $cart = $this->cartService->getCart();
-        $total = $this->cartService->getTotal();
+        $cartItems = $this->cartService->getStoredProducts();
+        $productIds = array_column($cartItems, 'productId');
+
+        // Fetch products with eager loading of prices
+        $products = Product::whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+
+        $total = 0;
+        $cart = [];
+
+        foreach ($cartItems as $item) {
+            $productId = $item['productId'];
+
+            if (isset($products[$productId])) {
+                $product = $products[$productId];
+                $price = $product->price; // Assuming price is a direct attribute
+
+                $itemTotal = $price * $item['quantity'];
+                $total += $itemTotal;
+
+                $cart[] = [
+                    'product' => $product,
+                    'quantity' => $item['quantity'],
+                    'total' => $itemTotal
+                ];
+            }
+        }
 
         return view('cart.index', compact('cart', 'total'));
     }
@@ -41,9 +67,15 @@ class CartController extends Controller
         return redirect()->back()->with('success', 'Product added to cart!');
     }
 
-    public function removeProduct(int $productId): RedirectResponse
-    {
-        $this->cartService->removeItem($productId);
+    public function removeProduct(Request $request): RedirectResponse{
+        $validated = $request->validate([
+            'productId' => 'required|exists:products,id',
+            'quantity' => 'nullable|integer|min:1',
+        ]);
+        $this->cartService->removeItem(
+            $validated['productId'],
+            $validated['quantity'] ?? 1
+        );
         return redirect()->route('cart.index')->with('success', 'Product removed from cart!');
     }
 

@@ -29,14 +29,14 @@
                     <a href="{{ route('catalogue.index') }}">{{ config('app.name') }}</a>
                 </h1>
                 <div class="flex items-center space-x-6">
-                    <a href="#" class="text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-search"></i>
-                    </a>
+                    <!-- resources/views/layouts/catalogue.blade.php -->
                     <a href="{{ route('cart.index') }}" class="text-gray-700 hover:text-purple-600 relative">
                         <i class="fas fa-shopping-cart text-xl"></i>
+                        @if($cartCount > 0)
                         <span class="absolute -top-2 -right-2 bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            0
+                            {{ $cartCount }}
                         </span>
+                        @endif
                     </a>
                 </div>
             </div>
@@ -89,7 +89,7 @@
     <!-- Add to Cart Form -->
     <form id="add-to-cart-form" action="{{ route('cart.addproduct') }}" method="POST" class="hidden">
         @csrf
-        <input type="hidden" name="product_id" id="cart_product_id">
+        <input type="hidden" name="productId" id="cart_product_id">
         <input type="hidden" name="quantity" id="cart_quantity" value="1">
     </form>
 
