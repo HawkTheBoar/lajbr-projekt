@@ -26,7 +26,6 @@ Route::prefix('auth')->group(function(){
 });
 // Admin frontend
 // Administration
-// TODO: ADD Authorization middleware
 Route::prefix('admin')->name('admin.')->group(function () {
     // Login routes
     Route::get('/login', [LoginController::class, 'index'])->name('login');
